@@ -18,12 +18,17 @@
 
 /*** includes ***/
 
+#define _DEFAULT_SOURCE // needed for getline to work
+#define _BSD_SOURCE     // needed for getline to work
+#define _GNU_SOURCE     // needed for getline to work
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termio.h>
 #include <unistd.h>
 
@@ -206,6 +211,31 @@ int get_window_size(int* rows, int* cols) {
     }
 }
 
+/*** file i/o ***/
+
+void editor_open(char* filename) {
+    FILE* fp = fopen(filename, "r");
+    if (!fp)
+        die("fopen");
+
+    char* line = NULL;
+    size_t linecap = 0;
+    ssize_t linelen;
+    linelen = getline(&line, &linecap, fp);
+    if (linelen != -1) {
+        while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+            linelen--;
+
+        E.row.size = linelen;
+        E.row.chars = malloc(linelen + 1);
+        memcpy(E.row.chars, line, linelen);
+        E.row.chars[linelen] = '\0';
+        E.numrows = 1;
+    }
+    free(line);
+    fclose(fp);
+}
+
 /*** append buffer ***/
 
 struct AppendBuffer {
@@ -235,34 +265,41 @@ void ab_free(struct AppendBuffer* append_buffer) {
 void editor_draw_rows(struct AppendBuffer* ab) {
     int y;
     for (y = 0; y < E.screenrows; y++) {
-        if (y == E.screenrows / 3) {
-            char welcome[80];
-            int welcome_len = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", VERSION);
-            if (welcome_len > E.screencolumns)
-                welcome_len = E.screencolumns;
-            int padding = (E.screencolumns - welcome_len) / 2;
-            if (padding) {
+        if (y >= E.numrows) {
+            if (y == E.screenrows / 3) {
+                char welcome[80];
+                int welcome_len = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", VERSION);
+                if (welcome_len > E.screencolumns)
+                    welcome_len = E.screencolumns;
+                int padding = (E.screencolumns - welcome_len) / 2;
+                if (padding) {
+                    ab_append(ab, "~", 1);
+                    padding--;
+                }
+                while (padding--)
+                    ab_append(ab, " ", 1);
+                ab_append(ab, welcome, welcome_len);
+            } else if (y == 2 + E.screenrows / 3) {
+                char licence[80];
+                int licence_len = snprintf(licence, sizeof(licence), "Copright 2021 Khaïs COLIN -- GNU GPL 3.0");
+                if (licence_len > E.screencolumns)
+                    licence_len = E.screencolumns;
+                int padding = (E.screencolumns - licence_len) / 2;
+                if (padding) {
+                    ab_append(ab, "~", 1);
+                    padding--;
+                }
+                while (padding--)
+                    ab_append(ab, " ", 1);
+                ab_append(ab, licence, licence_len);
+            } else {
                 ab_append(ab, "~", 1);
-                padding--;
             }
-            while (padding--)
-                ab_append(ab, " ", 1);
-            ab_append(ab, welcome, welcome_len);
-        } else if (y == 2 + E.screenrows / 3) {
-            char licence[80];
-            int licence_len = snprintf(licence, sizeof(licence), "Copright 2021 Khaïs COLIN -- GNU GPL 3.0");
-            if (licence_len > E.screencolumns)
-                licence_len = E.screencolumns;
-            int padding = (E.screencolumns - licence_len) / 2;
-            if (padding) {
-                ab_append(ab, "~", 1);
-                padding--;
-            }
-            while (padding--)
-                ab_append(ab, " ", 1);
-            ab_append(ab, licence, licence_len);
         } else {
-            ab_append(ab, "~", 1);
+            int len = E.row.size;
+            if (len > E.screencolumns)
+                len = E.screencolumns;
+            ab_append(ab, E.row.chars, len);
         }
 
         ab_append(ab, "\x1b[K", 3);
@@ -359,9 +396,12 @@ void init_editor() {
         die("get_window_size");
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     enable_raw_mode();
     init_editor();
+    if (argc >= 2) {
+        editor_open(argv[1]);
+    }
 
     while (1) {
         editor_refresh_screen();
