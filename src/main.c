@@ -35,6 +35,7 @@
 /*** defines ***/
 
 #define VERSION "0.0.1"
+#define TAB_STOP 4
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
@@ -61,6 +62,7 @@ typedef struct erow {
 
 struct EditorConfig {
     int cx, cy;
+    int rx;
     int rowoffset;
     int columnoffset;
     int screenrows;
@@ -217,6 +219,17 @@ int get_window_size(int* rows, int* cols) {
 
 /*** row operations ***/
 
+int editor_row_cx_to_rx(erow* row, int cx) {
+    int rx = 0;
+    int j;
+    for (j = 0; j < cx; j++) {
+        if (row->chars[j] == '\t')
+            rx += (TAB_STOP - 1) - (rx % TAB_STOP);
+        rx++;
+    }
+    return rx;
+}
+
 void editor_update_row(erow* row) {
     int tabs = 0;
     int j;
@@ -225,13 +238,13 @@ void editor_update_row(erow* row) {
             tabs++;
 
     free(row->render);
-    row->render = malloc(row->size + tabs * 3 + 1);
+    row->render = malloc(row->size + tabs * (TAB_STOP - 1) + 1);
 
     int idx = 0;
     for (j = 0; j < row->size; j++) {
         if (row->chars[j] == '\t') {
             row->render[idx++] = ' ';
-            while (idx % 4 != 0) {
+            while (idx % TAB_STOP != 0) {
                 row->render[idx++] = ' ';
             }
         } else {
@@ -305,17 +318,22 @@ void ab_free(struct AppendBuffer* append_buffer) {
 /*** output ***/
 
 void editor_scroll() {
+    E.rx = 0;
+    if (E.cy < E.numrows) {
+        E.rx = editor_row_cx_to_rx(&E.row[E.cy], E.cx);
+    }
+
     if (E.cy < E.rowoffset) {
         E.rowoffset = E.cy;
     }
     if (E.cy >= E.rowoffset + E.screenrows) {
         E.rowoffset = E.cy - E.screenrows + 1;
     }
-    if (E.cx < E.columnoffset) {
-        E.columnoffset = E.cx;
+    if (E.rx < E.columnoffset) {
+        E.columnoffset = E.rx;
     }
-    if (E.cx >= E.columnoffset + E.screencolumns) {
-        E.columnoffset = E.cx - E.screencolumns + 1;
+    if (E.rx >= E.columnoffset + E.screencolumns) {
+        E.columnoffset = E.rx - E.screencolumns + 1;
     }
 }
 
@@ -385,7 +403,7 @@ void editor_refresh_screen() {
     editor_draw_rows(&ab);
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoffset) + 1, (E.cx - E.columnoffset) + 1);
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoffset) + 1, (E.rx - E.columnoffset) + 1);
     ab_append(&ab, buf, strlen(buf));
 
     ab_append(&ab, "\x1b[?25h", 6);
@@ -465,6 +483,7 @@ void editor_process_keypress() {
 void init_editor() {
     E.cx = 0;
     E.cy = 0;
+    E.rx = 0;
     E.rowoffset = 0;
     E.columnoffset = 0;
     E.numrows = 0;
