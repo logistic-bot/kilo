@@ -266,7 +266,7 @@ void editor_draw_rows(struct AppendBuffer* ab) {
     int y;
     for (y = 0; y < E.screenrows; y++) {
         if (y >= E.numrows) {
-            if (y == E.screenrows / 3) {
+            if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
                 int welcome_len = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", VERSION);
                 if (welcome_len > E.screencolumns)
@@ -279,7 +279,7 @@ void editor_draw_rows(struct AppendBuffer* ab) {
                 while (padding--)
                     ab_append(ab, " ", 1);
                 ab_append(ab, welcome, welcome_len);
-            } else if (y == 2 + E.screenrows / 3) {
+            } else if (E.numrows == 0 && y == 2 + E.screenrows / 3) {
                 char licence[80];
                 int licence_len = snprintf(licence, sizeof(licence), "Copright 2021 Khaïs COLIN -- GNU GPL 3.0");
                 if (licence_len > E.screencolumns)
