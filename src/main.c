@@ -59,6 +59,7 @@ typedef struct erow {
 
 struct EditorConfig {
     int cx, cy;
+    int rowoffset;
     int screenrows;
     int screencolumns;
     int numrows;
@@ -270,10 +271,20 @@ void ab_free(struct AppendBuffer* append_buffer) {
 
 /*** output ***/
 
+void editor_scroll() {
+    if (E.cy < E.rowoffset) {
+        E.rowoffset = E.cy;
+    }
+    if (E.cy >= E.rowoffset + E.screenrows) {
+        E.rowoffset = E.cy - E.screenrows + 1;
+    }
+}
+
 void editor_draw_rows(struct AppendBuffer* ab) {
     int y;
     for (y = 0; y < E.screenrows; y++) {
-        if (y >= E.numrows) {
+        int filerow = y + E.rowoffset;
+        if (filerow >= E.numrows) {
             if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
                 int welcome_len = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", VERSION);
@@ -304,10 +315,10 @@ void editor_draw_rows(struct AppendBuffer* ab) {
                 ab_append(ab, "~", 1);
             }
         } else {
-            int len = E.row[y].size;
+            int len = E.row[filerow].size;
             if (len > E.screencolumns)
                 len = E.screencolumns;
-            ab_append(ab, E.row[y].chars, len);
+            ab_append(ab, E.row[filerow].chars, len);
         }
 
         ab_append(ab, "\x1b[K", 3);
@@ -318,6 +329,8 @@ void editor_draw_rows(struct AppendBuffer* ab) {
 }
 
 void editor_refresh_screen() {
+    editor_scroll();
+
     struct AppendBuffer ab = APPEND_BUFFER_INIT;
 
     ab_append(&ab, "\x1b[?25l", 6);
@@ -345,7 +358,7 @@ void editor_move_cursor(int key) {
         }
         break;
     case ARROW_DOWN:
-        if (E.cy != E.screenrows - 1) {
+        if (E.cy != E.numrows - 1) {
             E.cy++;
         }
         break;
@@ -398,6 +411,7 @@ void editor_process_keypress() {
 void init_editor() {
     E.cx = 0;
     E.cy = 0;
+    E.rowoffset = 0;
     E.numrows = 0;
     E.row = NULL;
 
