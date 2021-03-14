@@ -365,10 +365,17 @@ void editor_refresh_screen() {
 /*** input ***/
 
 void editor_move_cursor(int key) {
+    erow* row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+
     switch (key) {
     case ARROW_LEFT:
         if (E.cx != 0) {
             E.cx--;
+        }
+        break;
+    case ARROW_RIGHT:
+        if (row && E.cx < row->size) {
+            E.cx++;
         }
         break;
     case ARROW_DOWN:
@@ -380,9 +387,6 @@ void editor_move_cursor(int key) {
         if (E.cy != 0) {
             E.cy--;
         }
-        break;
-    case ARROW_RIGHT:
-        E.cx++;
         break;
     }
 }
