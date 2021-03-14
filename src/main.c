@@ -60,6 +60,7 @@ typedef struct erow {
 struct EditorConfig {
     int cx, cy;
     int rowoffset;
+    int columnoffset;
     int screenrows;
     int screencolumns;
     int numrows;
@@ -278,6 +279,12 @@ void editor_scroll() {
     if (E.cy >= E.rowoffset + E.screenrows) {
         E.rowoffset = E.cy - E.screenrows + 1;
     }
+    if (E.cx < E.columnoffset) {
+        E.columnoffset = E.cx;
+    }
+    if (E.cx >= E.columnoffset + E.screencolumns) {
+        E.columnoffset = E.cx - E.screencolumns + 1;
+    }
 }
 
 void editor_draw_rows(struct AppendBuffer* ab) {
@@ -285,6 +292,7 @@ void editor_draw_rows(struct AppendBuffer* ab) {
     for (y = 0; y < E.screenrows; y++) {
         int filerow = y + E.rowoffset;
         if (filerow >= E.numrows) {
+            /*** welcome ***/
             if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
                 int welcome_len = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", VERSION);
@@ -298,6 +306,7 @@ void editor_draw_rows(struct AppendBuffer* ab) {
                 while (padding--)
                     ab_append(ab, " ", 1);
                 ab_append(ab, welcome, welcome_len);
+
             } else if (E.numrows == 0 && y == 2 + E.screenrows / 3) {
                 char licence[80];
                 int licence_len = snprintf(licence, sizeof(licence), "Copright 2021 Khaïs COLIN -- GNU GPL 3.0");
@@ -311,14 +320,19 @@ void editor_draw_rows(struct AppendBuffer* ab) {
                 while (padding--)
                     ab_append(ab, " ", 1);
                 ab_append(ab, licence, licence_len);
+                /*** end welcome ***/
+
             } else {
                 ab_append(ab, "~", 1);
             }
+
         } else {
-            int len = E.row[filerow].size;
+            int len = E.row[filerow].size - E.columnoffset;
+            if (len < 0)
+                len = 0;
             if (len > E.screencolumns)
                 len = E.screencolumns;
-            ab_append(ab, E.row[filerow].chars, len);
+            ab_append(ab, &E.row[filerow].chars[E.columnoffset], len);
         }
 
         ab_append(ab, "\x1b[K", 3);
@@ -368,9 +382,7 @@ void editor_move_cursor(int key) {
         }
         break;
     case ARROW_RIGHT:
-        if (E.cx != E.screencolumns - 1) {
-            E.cx++;
-        }
+        E.cx++;
         break;
     }
 }
@@ -412,6 +424,7 @@ void init_editor() {
     E.cx = 0;
     E.cy = 0;
     E.rowoffset = 0;
+    E.columnoffset = 0;
     E.numrows = 0;
     E.row = NULL;
 
