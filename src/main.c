@@ -47,10 +47,17 @@ enum editorKey {
 
 /*** data ***/
 
+typedef struct erow {
+    int size;
+    char* chars;
+} erow;
+
 struct EditorConfig {
     int cx, cy;
     int screenrows;
     int screencolumns;
+    int numrows;
+    erow row;
     struct termios original_termios;
 };
 
@@ -346,6 +353,7 @@ void editor_process_keypress() {
 void init_editor() {
     E.cx = 0;
     E.cy = 0;
+    E.numrows = 0;
 
     if (get_window_size(&E.screenrows, &E.screencolumns) == -1)
         die("get_window_size");
