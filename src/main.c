@@ -69,6 +69,7 @@ struct EditorConfig {
     int screencolumns;
     int numrows;
     erow* row;
+    char* filename;
     struct termios original_termios;
 };
 
@@ -304,6 +305,9 @@ void editor_append_row(char* s, size_t len) {
 /*** file i/o ***/
 
 void editor_open(char* filename) {
+    free(E.filename);
+    E.filename = strdup(filename);
+
     FILE* fp = fopen(filename, "r");
     if (!fp)
         die("fopen");
@@ -422,7 +426,11 @@ void editor_draw_rows(struct AppendBuffer* ab) {
 
 void editor_draw_status_bar(struct AppendBuffer* ab) {
     ab_append(ab, "\x1b[7m", 4);
-    int len = 0;
+    char status[80];
+    int len = snprintf(status, sizeof(status), "%.20s %d", E.filename ? E.filename : "[No Name]", E.numrows);
+    if (len > E.screencolumns)
+        len = E.screencolumns;
+    ab_append(ab, status, len);
     while (len < E.screencolumns) {
         ab_append(ab, " ", 1);
         len++;
@@ -536,6 +544,7 @@ void init_editor() {
     E.columnoffset = 0;
     E.numrows = 0;
     E.row = NULL;
+    E.filename = NULL;
 
     if (get_window_size(&E.screenrows, &E.screencolumns) == -1)
         die("get_window_size");
