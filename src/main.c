@@ -81,6 +81,10 @@ struct EditorConfig {
 
 struct EditorConfig E;
 
+/*** prototypes ***/
+
+void editor_set_status_message(const char* fmt, ...);
+
 /*** terminal ***/
 
 void die(const char* s) {
@@ -380,10 +384,20 @@ void editor_save() {
     char* buf = editor_rows_to_string(&len);
 
     int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
-    ftruncate(fd, len);
-    write(fd, buf, len);
-    close(fd);
+    if (fd != -1) {
+        if (ftruncate(fd, len) != -1) {
+            if (write(fd, buf, len) == len) {
+                close(fd);
+                free(buf);
+                editor_set_status_message("\"%s\" %dL, %db written", E.filename, E.numrows, len);
+                return;
+            }
+        }
+        close(fd);
+    }
+
     free(buf);
+    editor_set_status_message("Write error: %s", strerror(errno));
 }
 
 /*** append buffer ***/
