@@ -39,6 +39,7 @@
 
 #define VERSION "0.0.1"
 #define TAB_STOP 4
+#define QUIT_TIMES 3
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
@@ -601,12 +602,20 @@ void editor_move_cursor(int key) {
 }
 
 void editor_process_keypress() {
+    static int quit_times = QUIT_TIMES;
+
     int c = editor_read_key();
+
     switch (c) {
     case '\r':
         /* TODO */
         break;
     case CTRL_KEY('q'):
+        if (E.dirty && quit_times > 0) {
+            editor_set_status_message("No write since last change, quit again %d more times to ignore", quit_times);
+            quit_times--;
+            return;
+        }
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
         exit(0);
@@ -655,6 +664,8 @@ void editor_process_keypress() {
         editor_insert_char(c);
         break;
     }
+
+    quit_times = QUIT_TIMES;
 }
 
 /*** init ***/
