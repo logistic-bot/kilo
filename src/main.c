@@ -161,10 +161,22 @@ int editor_read_key() {
                     return HOME;
                 case 'F':
                     return END;
+                case '5':
+                    return PAGE_UP;
+                case '6':
+                    return PAGE_DOWN;
+                case '7':
+                    return HOME;
+                case '8':
+                    return END;
                 }
             }
         } else if (seq[0] == '0') {
             switch (seq[1]) {
+            case '5':
+                return PAGE_UP;
+            case '6':
+                return PAGE_DOWN;
             case 'H':
                 return HOME;
             case 'F':
@@ -173,9 +185,27 @@ int editor_read_key() {
         }
 
         return c;
-    } else {
-        return c;
+    } else if (c == '~') {
+        char seq[3];
+
+        if (read(STDIN_FILENO, &seq[0], 1) != 1)
+            return c;
+        if (read(STDIN_FILENO, &seq[1], 1) != 1)
+            return c;
+        if (seq[0] == '[') { // This is supossed to handle pagup and pagedown, but for some reason this does not work on my terminal emulator
+            if (read(STDIN_FILENO, &seq[2], 1) != 1)
+                return c;
+            if (seq[2] == '~') {
+                switch (seq[1]) {
+                case '5':
+                    return PAGE_UP;
+                case '6':
+                    return PAGE_DOWN;
+                }
+            }
+        }
     }
+    return c;
 }
 
 int get_cursor_position(int* rows, int* cols) {
