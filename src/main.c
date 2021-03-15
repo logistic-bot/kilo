@@ -24,6 +24,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,6 +330,26 @@ void editor_insert_char(int c) {
 
 /*** file i/o ***/
 
+char* editor_rows_to_string(int* buflen) {
+    int totlen = 0;
+    int j;
+    for (j = 0; j < E.numrows; j++) {
+        totlen += E.row[j].size + 1;
+    }
+    *buflen = totlen;
+
+    char* buf = malloc(totlen);
+    char* p = buf;
+    for (j = 0; j < E.numrows; j++) {
+        memcpy(p, E.row[j].chars, E.row[j].size);
+        p += E.row[j].size;
+        *p = '\n'; // we only handle LF-style files for now
+        p++;
+    }
+
+    return buf;
+}
+
 void editor_open(char* filename) {
     free(E.filename);
     E.filename = strdup(filename);
@@ -348,6 +369,21 @@ void editor_open(char* filename) {
     }
     free(line);
     fclose(fp);
+}
+
+void editor_save() {
+    if (E.filename == NULL) {
+        return;
+    }
+
+    int len;
+    char* buf = editor_rows_to_string(&len);
+
+    int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+    ftruncate(fd, len);
+    write(fd, buf, len);
+    close(fd);
+    free(buf);
 }
 
 /*** append buffer ***/
@@ -555,6 +591,9 @@ void editor_process_keypress() {
         write(STDOUT_FILENO, "\x1b[2J", 4);
         write(STDOUT_FILENO, "\x1b[H", 3);
         exit(0);
+        break;
+    case CTRL_KEY('s'):
+        editor_save();
         break;
     case HOME:
         E.cx = 0;
