@@ -426,14 +426,20 @@ void editor_draw_rows(struct AppendBuffer* ab) {
 
 void editor_draw_status_bar(struct AppendBuffer* ab) {
     ab_append(ab, "\x1b[7m", 4);
-    char status[80];
-    int len = snprintf(status, sizeof(status), "%.20s %d", E.filename ? E.filename : "[No Name]", E.numrows);
+    char status[80], rstatus[80];
+    int len = snprintf(status, sizeof(status), "%.20s", E.filename ? E.filename : "[No Name]");
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d %d", E.cy + 1, E.numrows, E.cx);
     if (len > E.screencolumns)
         len = E.screencolumns;
     ab_append(ab, status, len);
     while (len < E.screencolumns) {
-        ab_append(ab, " ", 1);
-        len++;
+        if (E.screencolumns - len == rlen) {
+            ab_append(ab, rstatus, rlen);
+            break;
+        } else {
+            ab_append(ab, " ", 1);
+            len++;
+        }
     }
     ab_append(ab, "\x1b[m", 3);
 }
