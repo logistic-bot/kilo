@@ -504,8 +504,11 @@ void editor_save() {
 
 /*** find ***/
 
-void editor_find() {
-    char* query = editor_prompt("Search: %s", NULL);
+void editor_find_callback(char* query, int key) {
+    if (key == '\r' || key == '\x1b') {
+        return;
+    }
+
     if (query == NULL) {
         return;
     }
@@ -521,8 +524,13 @@ void editor_find() {
             break;
         }
     }
+}
 
-    free(query);
+void editor_find() {
+    char* query = editor_prompt("Search: %s", editor_find_callback);
+    if (query) {
+        free(query);
+    }
 }
 
 /*** append buffer ***/
