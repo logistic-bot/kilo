@@ -659,7 +659,11 @@ char* editor_prompt(char* prompt) {
         editor_refresh_screen();
 
         int c = editor_read_key();
-        if (c == '\x1b') {
+        if (c == DEL || c == CTRL_KEY('h') || c == BACKSPACE) {
+            if (buflen != 0) {
+                buf[--buflen] = '\0';
+            }
+        } else if (c == '\x1b') {
             editor_set_status_message("Canceled");
             free(buf);
             return NULL;
