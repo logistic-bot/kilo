@@ -128,8 +128,6 @@ int editor_read_key() {
             die("read");
     }
 
-    //    printf("%d %c\r\n", c, c);
-
     if (c == '\033') {
         char seq[3];
 
@@ -139,7 +137,7 @@ int editor_read_key() {
             return c;
 
         if (seq[0] == '[') { // This is supossed to handle pagup and pagedown, but for some reason this does not work on my terminal emulator
-            if (seq[1] >= '0' && seq[1] <= 9) {
+            if (seq[1] >= '0' && seq[1] <= '9') {
                 if (read(STDIN_FILENO, &seq[2], 1) != 1)
                     return c;
                 if (seq[2] == '~') {
@@ -326,6 +324,15 @@ void editor_row_insert_char(erow* row, int at, int c) {
     E.dirty++;
 }
 
+void editor_row_delete_char(erow* row, int at) {
+    if (at < 0 || at >= row->size)
+        return;
+    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+    row->size--;
+    editor_update_row(row);
+    E.dirty++;
+}
+
 /** editor operations **/
 
 void editor_insert_char(int c) {
@@ -334,6 +341,18 @@ void editor_insert_char(int c) {
     }
     editor_row_insert_char(&E.row[E.cy], E.cx, c);
     E.cx++;
+}
+
+void editor_del_char() {
+    if (E.cy == E.numrows) {
+        return;
+    }
+
+    erow* row = &E.row[E.cy];
+    if (E.cx > 0) {
+        editor_row_delete_char(row, E.cx - 1);
+        E.cx--;
+    }
 }
 
 /*** file i/o ***/
@@ -633,7 +652,10 @@ void editor_process_keypress() {
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DEL:
-        /* TODO */
+        if (c == DEL) {
+            editor_move_cursor(ARROW_RIGHT);
+        }
+        editor_del_char();
         break;
     case PAGE_UP:
     case PAGE_DOWN: {
