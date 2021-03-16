@@ -527,9 +527,20 @@ void editor_find_callback(char* query, int key) {
 }
 
 void editor_find() {
+    int saved_cx = E.cx;
+    int saved_cy = E.cy;
+    int saved_columnoffset = E.columnoffset;
+    int saved_rowoffset = E.rowoffset;
+
     char* query = editor_prompt("Search: %s", editor_find_callback);
+
     if (query) {
         free(query);
+    } else {
+        E.cx = saved_cx;
+        E.cy = saved_cy;
+        E.columnoffset = saved_columnoffset;
+        E.rowoffset = saved_rowoffset;
     }
 }
 
