@@ -516,7 +516,7 @@ void editor_find() {
         char* match = strstr(row->render, query);
         if (match) {
             E.cy = i;
-            E.cx = match - row->render;
+            E.cx = editor_row_rx_to_cx(row, match - row->render);
             //            E.rowoffset = E.numrows; // TODO
             break;
         }
@@ -783,6 +783,9 @@ void editor_process_keypress() {
     case END:
         if (E.cy < E.numrows)
             E.cx = E.row[E.cy].size;
+        break;
+    case CTRL_KEY('f'):
+        editor_find();
         break;
     case BACKSPACE:
     case CTRL_KEY('h'):
