@@ -273,6 +273,22 @@ int editor_row_cx_to_rx(erow* row, int cx) {
     return rx;
 }
 
+int editor_row_rx_to_cx(erow* row, int rx) {
+    int cur_rx = 0;
+    int cx;
+    for (cx = 0; cx < row->size; cx++) {
+        if (row->chars[cx] == '\t') {
+            cur_rx += (TAB_STOP - 1) - (cur_rx % TAB_STOP);
+        }
+        cur_rx++;
+
+        if (cur_rx > rx) {
+            return cx;
+        }
+    }
+    return cx;
+}
+
 void editor_update_row(erow* row) {
     int tabs = 0;
     int j;
@@ -501,7 +517,7 @@ void editor_find() {
         if (match) {
             E.cy = i;
             E.cx = match - row->render;
-            E.rowoffset = E.numrows;
+            //            E.rowoffset = E.numrows; // TODO
             break;
         }
     }
