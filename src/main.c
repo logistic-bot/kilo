@@ -658,7 +658,17 @@ void editor_draw_rows(struct AppendBuffer* ab) {
                 len = 0;
             if (len > E.screencolumns)
                 len = E.screencolumns;
-            ab_append(ab, &E.row[filerow].render[E.columnoffset], len);
+            char* c = &E.row[filerow].render[E.columnoffset];
+            int j;
+            for (j = 0; j < len; j++) {
+                if (isdigit(c[j])) {
+                    ab_append(ab, "\x1b[31m", 5);
+                    ab_append(ab, &c[j], 1);
+                    ab_append(ab, "\x1b[39m", 5);
+                } else {
+                    ab_append(ab, &c[j], 1);
+                }
+            }
         }
 
         ab_append(ab, "\x1b[K", 3);
