@@ -59,6 +59,7 @@ enum editorKey {
 enum editorHighlight {
     HL_NORMAL = 0,
     HL_NUMBER,
+    HL_MATCH,
 };
 
 /*** data ***/
@@ -284,6 +285,8 @@ int editor_syntax_to_color(int hl) {
     switch (hl) {
     case HL_NUMBER:
         return 31;
+    case HL_MATCH:
+        return 34;
     default:
         return 37;
     }
