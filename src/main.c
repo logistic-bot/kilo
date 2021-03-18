@@ -557,6 +557,8 @@ void editor_open(char* filename) {
     free(E.filename);
     E.filename = strdup(filename);
 
+    editor_select_syntax_hightlight();
+
     FILE* fp = fopen(filename, "r");
     if (!fp)
         die("fopen");
@@ -582,6 +584,7 @@ void editor_save() {
             editor_set_status_message("Saving canceled");
             return;
         }
+        editor_select_syntax_hightlight();
     }
 
     int len;
