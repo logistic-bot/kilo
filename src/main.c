@@ -318,6 +318,8 @@ void editor_update_syntax(erow* row) {
         return;
     }
 
+    char** keywords = E.syntax->keywords;
+
     char* scs = E.syntax->singleline_comment_start;
     int scs_len = scs ? strlen(scs) : 0;
 
@@ -365,6 +367,27 @@ void editor_update_syntax(erow* row) {
             if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) || (c == '.' && prev_hl == HL_NUMBER)) {
                 row->hl[i] = HL_NUMBER;
                 i++;
+                prev_sep = 0;
+                continue;
+            }
+        }
+
+        if (prev_sep) {
+            int j;
+            for (j = 0; keywords[j]; j++) {
+                int klen = strlen(keywords[j]);
+                int kw2 = keywords[j][klen - 1] == '|';
+                if (kw2) {
+                    klen--;
+                }
+
+                if (!strncmp(&row->render[i], keywords[j], klen) && is_separator(row->render[i + klen])) {
+                    memset(&row->hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
+                    i += klen;
+                    break;
+                }
+            }
+            if (keywords[j] != NULL) { // continue if broken out of loop
                 prev_sep = 0;
                 continue;
             }
