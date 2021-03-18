@@ -62,7 +62,15 @@ enum editorHighlight {
     HL_MATCH,
 };
 
+#define HL_HIGHLIGHT_NUMBERS (1 << 0)
+
 /*** data ***/
+
+struct editorSyntax {
+    char* filetype;
+    char** filematch;
+    int flags;
+};
 
 typedef struct erow {
     int size;
@@ -85,10 +93,25 @@ struct EditorConfig {
     char* filename;
     char statusmsg[80];
     time_t statusmsg_time;
+    struct editorSyntax* syntax;
     struct termios original_termios;
 };
 
 struct EditorConfig E;
+
+/*** filetypes ***/
+
+char* C_HL_extensions[] = { ".c", ".h", ".cpp", ".cxx", ".hpp", ".hxx", NULL };
+
+struct editorSyntax HLDB[] = {
+    {
+        "c",
+        C_HL_extensions,
+        HL_HIGHLIGHT_NUMBERS,
+    },
+};
+
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]));
 
 /*** prototypes ***/
 
@@ -757,7 +780,7 @@ void editor_draw_status_bar(struct AppendBuffer* ab) {
     ab_append(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s %s", E.filename ? E.filename : "[No Name]", E.dirty ? "[+]" : "");
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d %d", E.cy + 1, E.numrows, E.cx);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%s %d/%d %d", E.syntax ? E.syntax->filetype : "", E.cy + 1, E.numrows, E.cx);
     if (len > E.screencolumns)
         len = E.screencolumns;
     ab_append(ab, status, len);
@@ -980,6 +1003,7 @@ void init_editor() {
     E.filename = NULL;
     E.statusmsg[0] = '\0';
     E.statusmsg_time = 0;
+    E.syntax = NULL;
 
     if (get_window_size(&E.screenrows, &E.screencolumns) == -1)
         die("get_window_size");
