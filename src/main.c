@@ -317,6 +317,12 @@ void editor_update_syntax(erow* row) {
         if (E.syntax->flags & HL_HIGHLIGHT_STRINGS) {
             if (in_string) {
                 row->hl[i] = HL_STRING;
+                if (c == '\\' && i + 1 < row->rsize) {
+                    i++;
+                    row->hl[i] = HL_STRING;
+                    i++;
+                    continue;
+                }
                 if (c == in_string) {
                     in_string = 0;
                 }
